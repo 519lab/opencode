@@ -50,5 +50,9 @@ for features).
    packages upstream deleted can break lint: `git ls-files -o --directory --exclude-standard` shows them.
 4. Diff upstream's `check.yml` `check` job and `check-test.yml` `unit` job against `fork-check.yml`
    and port any step changes.
-5. After merge: `gh workflow list --all -R 519lab/opencode`, then disable any newly added upstream workflow.
+5. After merge, disable any newly added upstream workflow (repo setting; a maintainer runs it):
+   ```sh
+   gh workflow list --all -R 519lab/opencode --json path,state --jq '.[] | select(.state=="active" and (.path|startswith(".github/workflows/")) and .path!=".github/workflows/fork-check.yml") | .path | ltrimstr(".github/workflows/")' | xargs -I{} gh workflow disable {} -R 519lab/opencode
+   ```
+   Then confirm only `fork-check` (plus GitHub's dynamic Dependabot/CodeQL) is active.
 6. Add a `fork/CHANGELOG.md` entry.
