@@ -1,0 +1,103 @@
+# Fork-only CI. Upstream workflows are kept verbatim (so upstream syncs never conflict in
+# .github/workflows) and disabled in this repo's Actions settings; this file is the fork's real CI.
+#
+# Mirrors upstream's `check` job (check.yml) and the Linux leg of the `unit` job (check-test.yml),
+# on GitHub-hosted runners: the repo is public, and upstream's blacksmith runners are not available.
+# After each upstream sync, diff those two jobs against this file and port any step changes.
+name: fork-check
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  check:
+    name: lint + typecheck
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # A pull request checks out its merge into the current base; the first parent is that base.
+          fetch-depth: 2
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck:tsc
+
+      - name: Lint changed files
+        if: github.event_name == 'pull_request'
+        run: bun run lint:changed HEAD^1
+
+  unit:
+    name: unit (linux)
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # Pull requests diff against the merge's first parent; pushes diff against the previous head.
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          # Floating 24.x resolves past 24.22.1, the CVE-2026-111497 fix (#21).
+          node-version: "24"
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Test Effect simplification rules
+        run: bun run test:effect-simplification-rules
+
+      - name: Check Effect simplifications
+        run: bun run lint:effect-simplifications
+
+      - name: Configure git identity
+        run: |
+          git config --global user.email "ci@users.noreply.github.com"
+          git config --global user.name "fork-ci"
+
+      - name: Run unit tests
+        timeout-minutes: 30
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            GITHUB_ACTIONS=false bun turbo test --concurrency=3
+            exit 0
+          fi
+          GITHUB_ACTIONS=false bun turbo test --affected --concurrency=3
+        env:
+          TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && format('{0}^1', github.sha) || github.event.before }}
+          TURBO_SCM_HEAD: ${{ github.sha }}
+
+      - name: Check generated client
+        working-directory: packages/client
+        run: bun run check:generated
+
+      - name: Check generated OpenAPI document
+        working-directory: packages/protocol
+        run: bun run check:generated
