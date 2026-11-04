@@ -95,6 +95,32 @@ describe("Media", () => {
     }),
   )
 
+  it.effect("parses data URLs with several parameters", () =>
+    Effect.sync(() => {
+      expect(Media.parseDataUrl("data:image/png;name=a.png;charset=binary;base64,iVBO")?.source).toEqual({
+        type: "base64",
+        data: "iVBO",
+        mediaType: "image/png",
+      })
+      expect(Media.parseDataUrl("data:image/png;;base64,iVBO")?.source).toEqual({
+        type: "base64",
+        data: "iVBO",
+        mediaType: "image/png",
+      })
+    }),
+  )
+
+  // A run of ';' with no ';base64,' used to backtrack exponentially (seconds per call on V8).
+  it.effect("rejects a long run of semicolons in linear time", () =>
+    Effect.sync(() => {
+      const hostile = "data:image/png" + ";".repeat(5000) + "x"
+      const started = performance.now()
+      expect(Media.parseDataUrl(hostile)).toBeUndefined()
+      expect(() => Media.make(hostile)).toThrow("Media data URLs must contain a MIME type and base64 data")
+      expect(performance.now() - started).toBeLessThan(50)
+    }),
+  )
+
   it.effect("detects media types from magic bytes", () =>
     Effect.sync(() => {
       expect(Media.detectMediaType(PNG)).toBe("image/png")

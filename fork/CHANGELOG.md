@@ -12,6 +12,13 @@ Changes specific to this fork. Upstream's own changes are in `CHANGELOG.md` and 
   exist in v2. v2 has no equivalent either: `/connect` has no "Other" option, and adding a plain
   OpenAI-compatible endpoint means editing config by hand. It will be rebuilt, probably as a plugin.
 
+### Fixed
+
+- **Crafted `data:` URLs could hang the server** (#24). The data-URL parser backtracked exponentially on a long
+  run of `;`. 38 characters blocked a Node runtime for 20 seconds, and Bun stalled ~260 ms per parse. Inputs
+  come from model, tool and MCP content. Parsing is now linear and accepts the same URLs. Same fix as pending
+  upstream anomalyco/opencode#60715, applied now.
+
 ### Infrastructure
 
 - **Fork-only CI** (`fork-check.yml`). Lint, typecheck and Linux unit tests on GitHub-hosted runners.

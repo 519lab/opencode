@@ -643,6 +643,53 @@ it.effect("normalizes file data across AI SDK prompt parts", () =>
   }),
 )
 
+it.effect("parses non-image tool file data URLs in linear time", () =>
+  Effect.gen(function* () {
+    const aisdk = yield* AISDK.Service
+    yield* aisdk.hook.sdk((event) => {
+      event.sdk = { languageModel: () => ({ provider: event.model.providerID }) }
+    })
+    const resolved = yield* aisdk.model(model("opaque-provider"))
+    // A run of ';' with no ';base64,' used to backtrack exponentially (seconds per call on V8).
+    const hostile = "data:text/plain" + ";".repeat(5000) + "x"
+    const started = performance.now()
+    const prepared = yield* compileRequest(
+      ai.request({
+        model: resolved,
+        messages: [
+          Message.tool({
+            id: "call_1",
+            name: "read",
+            result: {
+              type: "content",
+              value: [
+                { type: "file", uri: "data:text/plain;charset=utf-8;base64,aGk=", mime: "text/plain", name: "a.txt" },
+                { type: "file", uri: hostile, mime: "text/plain", name: "b.txt" },
+              ],
+            },
+          }),
+        ],
+      }),
+    )
+    expect(performance.now() - started).toBeLessThan(50)
+    expect(prepared.body.prompt[0]?.content).toEqual([
+      {
+        type: "tool-result",
+        toolCallId: "call_1",
+        toolName: "read",
+        output: {
+          type: "content",
+          value: [
+            { type: "file-data", data: "aGk=", mediaType: "text/plain", filename: "a.txt" },
+            { type: "file-url", url: hostile },
+          ],
+        },
+        providerOptions: undefined,
+      },
+    ])
+  }),
+)
+
 it.effect("does not treat SSE comment heartbeats as model progress", () =>
   Effect.gen(function* () {
     const aisdk = yield* AISDK.Service
