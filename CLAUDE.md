@@ -39,6 +39,8 @@ for features).
 
 - `fork-check.yml` is the fork's CI: lint + typecheck and Linux unit tests on GitHub-hosted runners.
   The repo is public, so self-hosted runners are not available.
+- Fork-only steps that upstream's runner images make unnecessary: `Install ripgrep` (core's search
+  tests need `rg` on PATH and forbid network access). Keep them when porting upstream step changes.
 - Upstream's workflows are kept verbatim and **disabled** in repo Actions settings. They target
   upstream's blacksmith runners, and the `triage-*` workflows have no repository guard.
 

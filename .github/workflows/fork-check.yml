@@ -77,6 +77,11 @@ jobs:
       - name: Check Effect simplifications
         run: bun run lint:effect-simplifications
 
+      # Core's search tests need `rg` on PATH. Otherwise the code downloads it, and the tests
+      # forbid network access. Upstream's runner images include it; GitHub's ubuntu-24.04 doesn't.
+      - name: Install ripgrep
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep && rg --version
+
       - name: Configure git identity
         run: |
           git config --global user.email "ci@users.noreply.github.com"
