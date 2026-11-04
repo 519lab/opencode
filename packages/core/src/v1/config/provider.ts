@@ -1,14 +1,9 @@
-export * as ConfigProviderV1 from "./provider"
+export * as ConfigProviderV1 from "./provider.js"
 
 import { Schema } from "effect"
-import { PositiveInt } from "../../schema"
+import { PositiveInt } from "../../schema.js"
 
 export const ModelStatus = Schema.Literals(["alpha", "beta", "deprecated", "active"])
-
-const InterleavedField = Schema.Union([
-  Schema.Literals(["reasoning", "reasoning_content", "reasoning_text"]),
-  Schema.String,
-])
 
 export const Model = Schema.Struct({
   id: Schema.optional(Schema.String),
@@ -22,9 +17,9 @@ export const Model = Schema.Struct({
   interleaved: Schema.optional(
     Schema.Union([
       Schema.Boolean,
-      InterleavedField,
+      Schema.String,
       Schema.Struct({
-        field: InterleavedField,
+        field: Schema.String,
       }),
     ]),
   ),
@@ -98,30 +93,16 @@ export const Info = Schema.Struct({
         setCacheKey: Schema.optional(Schema.Boolean).annotate({
           description: "Enable promptCacheKey for this provider (default false)",
         }),
-        timeout: Schema.optional(
-          Schema.Union([PositiveInt, Schema.Literal(false)]).annotate({
-            description: "Timeout in milliseconds for full requests to this provider. Set to false to disable timeout.",
-          }),
-        ).annotate({
+        timeout: Schema.optional(Schema.Union([PositiveInt, Schema.Literal(false)])).annotate({
           description: "Timeout in milliseconds for full requests to this provider. Set to false to disable timeout.",
         }),
-        headerTimeout: Schema.optional(
-          Schema.Union([PositiveInt, Schema.Literal(false)]).annotate({
-            description:
-              "Timeout in milliseconds to wait for response headers (default: 300000). Set to false to disable timeout.",
-          }),
-        ).annotate({
+        headerTimeout: Schema.optional(Schema.Union([PositiveInt, Schema.Literal(false)])).annotate({
           description:
-            "Timeout in milliseconds to wait for response headers (default: 300000). Set to false to disable timeout.",
+            "Timeout in milliseconds to wait for response headers. Provider integrations may set defaults. Set to false to disable timeout.",
         }),
-        chunkTimeout: Schema.optional(
-          Schema.Union([PositiveInt, Schema.Literal(false)]).annotate({
-            description:
-              "Timeout in milliseconds between streamed SSE chunks for this provider (default: 300000). If no chunk arrives within this window, the request is aborted. Set to false to disable timeout.",
-          }),
-        ).annotate({
+        chunkTimeout: Schema.optional(PositiveInt).annotate({
           description:
-            "Timeout in milliseconds between streamed SSE chunks for this provider (default: 300000). If no chunk arrives within this window, the request is aborted. Set to false to disable timeout.",
+            "Timeout in milliseconds between streamed SSE chunks for this provider. If no chunk arrives within this window, the request is aborted.",
         }),
       }),
       [Schema.Record(Schema.String, Schema.Any)],
@@ -130,84 +111,3 @@ export const Info = Schema.Struct({
   models: Schema.optional(Schema.Record(Schema.String, Model)),
 }).annotate({ identifier: "ProviderConfig" })
 export type Info = Schema.Schema.Type<typeof Info>
-
-/** npm package that backs OpenAI-compatible (`/v1/chat/completions`) providers. */
-export const OPENAI_COMPATIBLE_NPM = "@ai-sdk/openai-compatible"
-
-/**
- * Custom provider ids must start with a lowercase letter or digit and use only
- * lowercase letters, digits, hyphens, and underscores. This is stricter than a
- * free string because the id is used as a path segment when a model is referenced
- * as `provider/model` — a `/`, space, or uppercase would break that split and the
- * credential/config lookup. Shared by the CLI and TUI so every entry path is
- * validated identically.
- */
-export const CUSTOM_PROVIDER_ID = /^[a-z0-9][a-z0-9-_]*$/
-
-/**
- * Normalize and validate a user-entered custom provider id. Strips a leading
- * `@ai-sdk/` and surrounding whitespace, then enforces {@link CUSTOM_PROVIDER_ID}.
- * Returns the normalized id, or `undefined` if it is not a valid id.
- */
-export function normalizeProviderID(value: string): string | undefined {
-  const id = value.trim().replace(/^@ai-sdk\//, "")
-  if (!CUSTOM_PROVIDER_ID.test(id)) return undefined
-  return id
-}
-
-/**
- * Normalize and validate a base URL for a custom provider. Trims whitespace,
- * requires an http(s) URL, and rejects a URL that embeds a credential in the
- * userinfo (`https://user:pass@host`) or query string (`?api_key=…`) — those
- * would persist a secret into opencode.json, defeating the credential-store
- * invariant. Returns the trimmed URL, or `undefined` if invalid/unsafe.
- */
-export function normalizeBaseURL(value: string): string | undefined {
-  const trimmed = value.trim()
-  let url: URL
-  try {
-    url = new URL(trimmed)
-  } catch {
-    return undefined
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return undefined
-  // Reject embedded credentials so no secret lands in config.
-  if (url.username || url.password) return undefined
-  for (const key of url.searchParams.keys()) {
-    if (/(^|_)(api[_-]?key|token|secret|password|access[_-]?key)($|_)/i.test(key)) return undefined
-  }
-  return trimmed
-}
-
-/** Split a comma-separated model id string into a de-duplicated, trimmed list. */
-export function parseModelIDs(value: string): string[] {
-  const seen = new Set<string>()
-  for (const raw of value.split(",")) {
-    const id = raw.trim()
-    if (id.length > 0) seen.add(id)
-  }
-  return [...seen]
-}
-
-/**
- * Build the minimal config block for a custom OpenAI-compatible provider.
- *
- * Pure: no I/O. The API key is intentionally NOT included here — it belongs in
- * the credential store (auth.json), and is injected into the SDK at request time
- * from `provider.key`. Writing it into config would be redundant and would leak
- * the secret into opencode.json. Provider-level `api` is likewise omitted because
- * `options.baseURL` is sufficient for URL resolution (see resolveSDK in
- * provider/provider.ts).
- */
-export function buildOpenAICompatible(input: { name: string; baseURL: string; modelIDs: readonly string[] }): Info {
-  // A null-prototype object so a model id like `__proto__` becomes an own
-  // property instead of hitting the prototype setter (which would silently drop it).
-  const models: Record<string, Schema.Schema.Type<typeof Model>> = Object.create(null)
-  for (const id of input.modelIDs) models[id] = { name: id }
-  return {
-    npm: OPENAI_COMPATIBLE_NPM,
-    name: input.name,
-    options: { baseURL: input.baseURL },
-    models,
-  }
-}
