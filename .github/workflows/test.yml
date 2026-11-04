@@ -79,7 +79,8 @@ jobs:
             turbo-${{ runner.os }}-
 
       - name: Run unit tests
-        timeout-minutes: 20
+        # Windows runners spawn processes far slower; the opencode package alone outlasts 20 minutes there
+        timeout-minutes: ${{ runner.os == 'Windows' && 45 || 20 }}
         run: GITHUB_ACTIONS=false bun turbo test
         env:
           OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
