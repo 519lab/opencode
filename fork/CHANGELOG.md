@@ -14,6 +14,10 @@ Changes specific to this fork. Upstream's own changes are in `CHANGELOG.md` and 
 
 ### Fixed
 
+- **Restored frozen dependency installs** (#31). Dependency updates changed manifests without
+  updating `bun.lock`, stopping both CI jobs before any checks ran. Regenerated the lockfile
+  with the pinned Bun version.
+
 - **Crafted `data:` URLs could hang the server** (#24). The data-URL parser backtracked exponentially on a long
   run of `;`. 38 characters blocked a Node runtime for 20 seconds, and Bun stalled ~260 ms per parse. Inputs
   come from model, tool and MCP content. Parsing is now linear and accepts the same URLs. Same fix as pending
