@@ -26,10 +26,12 @@ upstream's files conflicted on every sync. Upstream's `triage-*` workflows have 
 `github.repository` guard and would act on our PRs.
 
 **Decision.** Keep upstream's workflows byte-for-byte and disable them in repo settings. The fork's
-CI is `.github/workflows/fork-check.yml`, on GitHub-hosted runners: lint, typecheck, Linux unit
-tests and generated-code checks.
+CI is `.github/workflows/fork-check.yml`, on GitHub-hosted `ubuntu-24.04` runners: lint,
+typecheck, Linux unit tests, generated-code checks, and the docs build. Not the org's skynet
+runners: they sit in a private-only group, and this repo is public. Do not retarget upstream
+files from blacksmith; a sync would overwrite that, and those workflows stay disabled.
 
 **Consequences.** No workflow conflicts on sync. After each sync, manually diff `fork-check.yml`
-against upstream's `check` and `unit` jobs and disable any new upstream workflow. Not covered for
+against upstream's `check`, `unit`, and docs jobs and disable any new upstream workflow. Not covered for
 now: Windows unit tests (intermittent git/fs timeouts on GitHub-hosted Windows during the v1 era),
 the build and e2e jobs, and the package-pack verifications. Add them back when needed.

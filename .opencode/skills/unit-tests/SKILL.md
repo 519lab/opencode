@@ -19,7 +19,7 @@ Sibling skills: `tui-tests` (OpenTUI renderer tests in tui and cli), `app-e2e-te
 
 - Bun's default per-test timeout is 5000ms. Check the package's `test` script:
   - 30s: ai, cli, desktop, http-recorder, latex, merman, simulation, theme and tui pass `--timeout 30000`; core's `script/test.ts` passes `--timeout=30000`.
-  - 5s: client, httpapi-codegen and sdk pass `--timeout 5000`; app, codemode, function, gui-plugins, plugin, plugin-browser, script, server, session-ui, ui and util use the default.
+  - 5s: client, httpapi-codegen, sdk and server pass `--timeout 5000` (server through core's isolated runner); app, codemode, function, gui-plugins, plugin, plugin-browser, script, session-ui, ui and util use the default.
 - Size Windows risk by counting spawns, not by local wall time.
   - npm.test.ts "installs a Git package from an npm ::path: subdirectory at a branch" takes 0.4s locally and hit 5000ms on Windows CI. Each Npm.add Git case makes about 75 git process events: 3 `clone --recurse-submodules`, which run the git-submodule shell script.
   - Assume roughly 40ms per Git-for-Windows spawn (estimated from an earlier git.test run on Windows CI: ~24s for 564 spawns). Some core file groups run 5-9x slower on Windows than locally.
@@ -94,7 +94,7 @@ To avoid adding more:
 
 ## Temp dirs, files, process state
 
-- core's `script/test.ts` points HOME, XDG\_\* and TMPDIR (plus USERPROFILE, TMP and TEMP on Windows) at a fresh directory per run. Per-test dirs: `tmpdir()` (`await using`), `tmpdirScoped` or `withTempDir` from `packages/core/test/fixture/tmpdir.ts`.
+- core and server run through core's `script/test.ts`, which points HOME, XDG\_\* and TMPDIR (plus USERPROFILE, TMP and TEMP on Windows) at a fresh directory per run. Per-test dirs: `tmpdir()` (`await using`), `tmpdirScoped` or `withTempDir` from `packages/core/test/fixture/tmpdir.ts`.
 - Close watchers, databases and children before the dir is removed. On Windows an open handle fails removal with `EBUSY`; `remove` in `tmpdir.ts` then forces a GC and retries every 100ms, up to 30 times.
 - Restore process state: env with `withEnv` (`packages/core/test/fixture/env.ts`) in Effect tests and in `afterEach` elsewhere, real timers, and `setSystemTime()`.
 - `CI=true` in the unit job, and Turbo passes it through. Code that reads `CI` takes another path there, so a test of the non-CI path unsets it itself: `packages/http-recorder/test/websocket.test.ts:132` wraps its record-mode case in `withEnvironment("CI", undefined, ...)`, because in CI that case replayed and waited forever for "open".
@@ -129,7 +129,7 @@ To avoid adding more:
 
 ## Before you push
 
-Run from the package directory with the flags from its `test` script (app needs `--conditions` and `--preload`). In core use `bun run script/test.ts <file> …`, which forwards flags, isolates HOME and applies the 30s timeout.
+Run from the package directory with the flags from its `test` script (app needs `--conditions` and `--preload`). In core use `bun run script/test.ts <file> …`, which forwards flags, isolates HOME and applies the 30s timeout. In server use `bun run test <file> …`, which reuses that runner with a 5s timeout; bare `bun test` can import developer credentials through database migrations.
 
 - [ ] `bun test <file> --rerun-each 10` passes every time. Add `--randomize` for order dependence; reproduce a failure with `--seed=<n>`.
 - [ ] Per-test durations: `--reporter=junit --reporter-outfile=<abs path>` (works through `script/test.ts`). Any test over about 1s does real work you can name.

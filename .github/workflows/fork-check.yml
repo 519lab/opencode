@@ -1,9 +1,11 @@
 # Fork-only CI. Upstream workflows are kept verbatim (so upstream syncs never conflict in
 # .github/workflows) and disabled in this repo's Actions settings; this file is the fork's real CI.
 #
-# Mirrors upstream's `check` job (check.yml) and the Linux leg of the `unit` job (check-test.yml),
-# on GitHub-hosted runners: the repo is public, and upstream's blacksmith runners are not available.
-# After each upstream sync, diff those two jobs against this file and port any step changes.
+# Mirrors upstream's `check` job (check.yml), the Linux leg of the `unit` job (check-test.yml),
+# and the docs build (check-docs.yml). Jobs run on GitHub-hosted runners. The org's skynet
+# runners are in a private-only group, so this public repo cannot use them. Upstream workflow
+# files stay verbatim and disabled: they request blacksmith runners.
+# After each upstream sync, diff those jobs against this file and port any step changes.
 name: fork-check
 
 on:
@@ -78,9 +80,13 @@ jobs:
         run: bun run lint:effect-simplifications
 
       # Core's search tests need `rg` on PATH. Otherwise the code downloads it, and the tests
-      # forbid network access. Upstream's runner images include it; GitHub's ubuntu-24.04 doesn't.
+      # forbid network access. Install it only when the runner image does not already have it.
       - name: Install ripgrep
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep && rg --version
+        run: |
+          if ! command -v rg >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
+          fi
+          rg --version
 
       - name: Configure git identity
         run: |
@@ -106,3 +112,25 @@ jobs:
       - name: Check generated OpenAPI document
         working-directory: packages/protocol
         run: bun run check:generated
+
+  docs:
+    name: docs build
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/site
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      # The API reference and the config schema the pages link (/docs/openapi.json, /v2/cli.json).
+      - name: Generate
+        run: bun run generate
+
+      - name: Build docs
+        run: bun src/docs/script/build.ts --out "$RUNNER_TEMP/docs"
