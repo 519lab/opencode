@@ -34,9 +34,10 @@ Changes specific to this fork. Upstream's own changes are in `CHANGELOG.md` and 
 
 ### Infrastructure
 
-- **Fork CI runs on self-hosted runners.** `fork-check.yml` uses `[self-hosted, skynet]` for lint,
-  typecheck, unit tests, and the docs build. Upstream workflows stay disabled because they request
-  blacksmith runners.
+- **Fork CI runs on GitHub-hosted runners.** `fork-check.yml` uses `ubuntu-24.04` for lint,
+  typecheck, unit tests, and the docs build. Not blacksmith, and not the org's skynet runners:
+  those are private-only, and this repo is public. Upstream workflows stay disabled because they
+  request blacksmith runners.
 - Closed superseded v1 PRs #12, #14–#17 and #20. Upstream's e2e job still pins Node 24.15, which is
   affected by CVE-2026-111497; this is tracked in #21. Fork CI uses Node 24.x ≥ 24.22.1.
 

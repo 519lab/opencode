@@ -44,8 +44,8 @@ for features).
 ## CI
 
 - `fork-check.yml` is the fork's CI: lint, typecheck, Linux unit tests, and the docs build on
-  the org's self-hosted `skynet` runners (`runs-on: [self-hosted, skynet]`). Do not point a job
-  at blacksmith.
+  GitHub-hosted `ubuntu-24.04`. Do not point a job at blacksmith. The org's skynet runners are
+  private-only, so this public repo cannot use them.
 - Fork-only steps that upstream's runner images make unnecessary: `Install ripgrep` (core's search
   tests need `rg` on PATH and forbid network access). Keep them when porting upstream step changes.
 - Upstream's workflows are kept verbatim and must be **disabled** in repo Actions settings. They target
@@ -58,8 +58,8 @@ for features).
 3. Regenerate `bun.lock` with `bun install` if manifests changed, then run
    `bun install --frozen-lockfile && bun run check && bun run typecheck:tsc`. After a large upstream restructure, untracked build output left in
    packages upstream deleted can break lint: `git ls-files -o --directory --exclude-standard` shows them.
-4. Diff upstream's `check.yml` `check` job and `check-test.yml` `unit` job against `fork-check.yml`
-   and port any step changes.
+4. Diff upstream's `check.yml` `check` job, `check-test.yml` `unit` job, and `check-docs.yml`
+   against `fork-check.yml` and port any step changes.
 5. After merge, disable any newly added upstream workflow (repo setting; a maintainer runs it):
    ```sh
    gh workflow list --all -R 519lab/opencode --json path,state --jq '.[] | select(.state=="active" and (.path|startswith(".github/workflows/")) and .path!=".github/workflows/fork-check.yml") | .path | ltrimstr(".github/workflows/")' | xargs -I{} gh workflow disable {} -R 519lab/opencode

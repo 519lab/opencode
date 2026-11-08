@@ -2,8 +2,9 @@
 # .github/workflows) and disabled in this repo's Actions settings; this file is the fork's real CI.
 #
 # Mirrors upstream's `check` job (check.yml), the Linux leg of the `unit` job (check-test.yml),
-# and the docs build (check-docs.yml). Jobs run on the org's self-hosted `skynet` runners.
-# Upstream workflow files stay verbatim and disabled: they request blacksmith runners.
+# and the docs build (check-docs.yml). Jobs run on GitHub-hosted runners. The org's skynet
+# runners are in a private-only group, so this public repo cannot use them. Upstream workflow
+# files stay verbatim and disabled: they request blacksmith runners.
 # After each upstream sync, diff those jobs against this file and port any step changes.
 name: fork-check
 
@@ -28,7 +29,7 @@ jobs:
   check:
     name: lint + typecheck
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: [self-hosted, skynet]
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -52,7 +53,7 @@ jobs:
   unit:
     name: unit (linux)
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: [self-hosted, skynet]
+    runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash
@@ -115,7 +116,7 @@ jobs:
   docs:
     name: docs build
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: [self-hosted, skynet]
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
       run:
