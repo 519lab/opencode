@@ -37,6 +37,8 @@ for features).
 - Lint + typecheck (same as the pre-push hook): `bun run check`
 - Tests: never from root (`bun run test` at root intentionally fails). Run per package:
   `cd packages/<pkg> && bun run test`, or `bun turbo test --filter=<package-name>`.
+  Use `bun run test` in Core and Server rather than bare `bun test`: their runner isolates
+  developer credentials and global data paths from database migrations (#32).
 - Workflow lint: `actionlint .github/workflows/fork-check.yml`
 
 ## CI

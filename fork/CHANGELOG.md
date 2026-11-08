@@ -19,6 +19,10 @@ Changes specific to this fork. Upstream's own changes are in `CHANGELOG.md` and 
 
 ### Fixed
 
+- **Isolated server tests from developer credentials** (#32). Legacy-auth migration could
+  import host credentials into test databases and expose them in assertion output. Server
+  tests now reuse Core's isolated runner while retaining their five-second timeout.
+
 - **Restored frozen dependency installs** (#31). Dependency updates changed manifests without
   updating `bun.lock`, stopping both CI jobs before any checks ran. Regenerated the lockfile
   with the pinned Bun version.
