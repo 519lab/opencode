@@ -43,8 +43,9 @@ for features).
 
 ## CI
 
-- `fork-check.yml` is the fork's CI: lint + typecheck and Linux unit tests on GitHub-hosted runners.
-  The fork does not use upstream's Blacksmith runner infrastructure.
+- `fork-check.yml` is the fork's CI: lint, typecheck, Linux unit tests, and the docs build on
+  the org's self-hosted `skynet` runners (`runs-on: [self-hosted, skynet]`). Do not point a job
+  at blacksmith.
 - Fork-only steps that upstream's runner images make unnecessary: `Install ripgrep` (core's search
   tests need `rg` on PATH and forbid network access). Keep them when porting upstream step changes.
 - Upstream's workflows are kept verbatim and must be **disabled** in repo Actions settings. They target

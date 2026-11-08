@@ -26,8 +26,9 @@ upstream's files conflicted on every sync. Upstream's `triage-*` workflows have 
 `github.repository` guard and would act on our PRs.
 
 **Decision.** Keep upstream's workflows byte-for-byte and disable them in repo settings. The fork's
-CI is `.github/workflows/fork-check.yml`, on GitHub-hosted runners: lint, typecheck, Linux unit
-tests and generated-code checks.
+CI is `.github/workflows/fork-check.yml`, on the org's self-hosted `skynet` runners: lint,
+typecheck, Linux unit tests, generated-code checks, and the docs build. Do not retarget upstream
+files from blacksmith; a sync would overwrite that, and those workflows stay disabled.
 
 **Consequences.** No workflow conflicts on sync. After each sync, manually diff `fork-check.yml`
 against upstream's `check` and `unit` jobs and disable any new upstream workflow. Not covered for
