@@ -1,6 +1,6 @@
 # CLAUDE.md — 519lab/opencode (fork)
 
-As of 2026-11-04. This is a **soft fork** of [anomalyco/opencode](https://github.com/anomalyco/opencode),
+As of 2026-11-08. This is a **soft fork** of [anomalyco/opencode](https://github.com/anomalyco/opencode),
 on upstream's **v2** codebase (upstream promoted v2 to `dev` on 2026-10-10). Its job is to track
 upstream closely: fix bugs, prepare upstream contributions, and test against the latest code. New
 features live **outside** this repo as opencode plugins (e.g. `519lab/consort`), not as fork-only
@@ -17,6 +17,9 @@ for features).
 - **Fork-only files** (safe, never conflict): `CLAUDE.md`, `fork/**`, `.github/workflows/fork-check.yml`.
   Upstream owns `CHANGELOG.md` — the fork's changelog is `fork/CHANGELOG.md`.
 - Don't refactor upstream code to local style conventions; apply them to code written here.
+- Dependency manifest changes must include the regenerated root `bun.lock`, using the pinned Bun
+  version. Verify with `bun install --frozen-lockfile` before merging dependency PRs: a stale lockfile
+  stops both CI jobs before validation (#31).
 
 ## Branches
 
@@ -24,7 +27,8 @@ for features).
   trivial). Every PR targets `dev`.
 - `main` — promotions only (PR from `dev`, merge commit or fast-forward, never squash). Created from
   `dev` once the v2 sync (#22) has merged.
-- Branch names: `<type>/<kebab-summary>`. Conventional Commits with a scope.
+- Branch names follow `AGENTS.md`: at most three hyphen-separated words, no slash or type prefix
+  (for example `stabilize-foundation`). Conventional Commits with a scope.
 
 ## Commands (run from repo root unless noted)
 
@@ -38,17 +42,18 @@ for features).
 ## CI
 
 - `fork-check.yml` is the fork's CI: lint + typecheck and Linux unit tests on GitHub-hosted runners.
-  The repo is public, so self-hosted runners are not available.
+  The fork does not use upstream's Blacksmith runner infrastructure.
 - Fork-only steps that upstream's runner images make unnecessary: `Install ripgrep` (core's search
   tests need `rg` on PATH and forbid network access). Keep them when porting upstream step changes.
-- Upstream's workflows are kept verbatim and **disabled** in repo Actions settings. They target
+- Upstream's workflows are kept verbatim and must be **disabled** in repo Actions settings. They target
   upstream's blacksmith runners, and the `triage-*` workflows have no repository guard.
 
 ## Syncing upstream
 
-1. `git fetch upstream && git switch -c chore/sync-upstream-<date> dev && git merge upstream/dev`
+1. `git fetch origin && git fetch upstream && git switch -c sync-upstream origin/dev && git merge upstream/dev`
 2. Resolve conflicts. Upstream wins unless a fork fix is still needed.
-3. `bun install && bun run check`. After a large upstream restructure, untracked build output left in
+3. Regenerate `bun.lock` with `bun install` if manifests changed, then run
+   `bun install --frozen-lockfile && bun run check && bun run typecheck:tsc`. After a large upstream restructure, untracked build output left in
    packages upstream deleted can break lint: `git ls-files -o --directory --exclude-standard` shows them.
 4. Diff upstream's `check.yml` `check` job and `check-test.yml` `unit` job against `fork-check.yml`
    and port any step changes.

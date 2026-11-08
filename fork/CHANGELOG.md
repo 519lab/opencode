@@ -6,6 +6,11 @@ Changes specific to this fork. Upstream's own changes are in `CHANGELOG.md` and 
 
 ### Changed
 
+- **Updated to upstream dev `fe0a88ce3f` (2026-11-08)**, incorporating 406 upstream commits
+  since the previous sync. Includes worktree CLI runs, shared MCP connections, plugin UI
+  extensions, and session reliability fixes. Retained the data-URL security fix (#24) and
+  minimatch update; accepted upstream's removal of the legacy Console workspace.
+
 - **Synced to upstream opencode v2** (#22). Upstream replaced its `dev` branch with the v2 rewrite on
   2026-10-10. The fork now matches upstream `dev` exactly, replacing the 1.18.x codebase.
 - **Dropped the v1-only guided custom OpenAI-compatible provider setup** (#2). Its code paths don't
@@ -32,4 +37,6 @@ Changes specific to this fork. Upstream's own changes are in `CHANGELOG.md` and 
 
 ### Docs
 
+- Aligned fork branch and sync instructions with `AGENTS.md`; documented the lockfile
+  requirement that prevents dependency updates from stopping CI before checks (#31).
 - Added `CLAUDE.md`, `fork/DECISIONS.md` (ADR-001 soft fork + plugins, ADR-002 fork CI) and this changelog.
