@@ -19,6 +19,11 @@ Changes specific to this fork. Upstream's own changes are in `CHANGELOG.md` and 
 
 ### Fixed
 
+- **Frozen installs work again** (#36). #26 and #27 changed glob and happy-dom pins
+  without regenerating `bun.lock`, so every CI job died in Setup Bun. The lockfile now
+  matches those pins, and the same regeneration picks up happy-dom 21.0.4 in
+  `packages/nav-menus` and sharp 0.35.5 in `services/site`.
+
 - **Isolated server tests from developer credentials** (#32). Legacy-auth migration could
   import host credentials into test databases and expose them in assertion output. Server
   tests now reuse Core's isolated runner while retaining their five-second timeout.
