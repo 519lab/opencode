@@ -14,7 +14,7 @@
   "dependencies": {
     "@astrojs/cloudflare": "14.1.4",
     "@astrojs/markdown-remark": "7.3.2",
-    "@astrojs/solid-js": "7.1.0",
+    "@astrojs/solid-js": "7.1.2",
     "@astrojs/starlight": "catalog:",
     "@fontsource/ibm-plex-mono": "5.2.5",
     "@solid-primitives/resize-observer": "catalog:",
